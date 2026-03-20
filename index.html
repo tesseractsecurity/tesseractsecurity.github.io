@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tesseract Security — Argus Threat Intelligence Platform</title>
+<meta name="description" content="Tesseract Security delivers enterprise-grade threat intelligence to mid-market organisations. Argus monitors your digital footprint 24/7 and delivers actionable reports to your SOC team every morning.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Root ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --void:    #04040f;
+  --deep:    #070714;
+  --surface: #0c0c22;
+  --card:    #10102a;
+  --border:  rgba(108,92,231,0.18);
+  --purple:  #6c5ce7;
+  --violet:  #8b7df0;
+  --accent:  #a29bfe;
+  --cyan:    #00cec9;
+  --green:   #00b894;
+  --gold:    #fdcb6e;
+  --red:     #ff7675;
+  --white:   #ffffff;
+  --offwhite:#e8e8f8;
+  --muted:   #9090b8;
+  --dim:     #5a5a80;
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --font-mono:    'DM Mono', monospace;
+}
+
+html { scroll-behavior: smooth; }
+body {
+  background: var(--void);
+  color: var(--offwhite);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.7;
+  overflow-x: hidden;
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--deep); }
+::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 2px; }
+
+/* ── Grid noise texture overlay ─────────────────────────────── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(108,92,231,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(108,92,231,0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Navigation ──────────────────────────────────────────────── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  padding: 0 5%;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(4,4,15,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  transition: all 0.3s;
+}
+nav.scrolled { background: rgba(4,4,15,0.97); }
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.nav-logo-mark {
+  width: 36px; height: 36px;
+  background: var(--purple);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 16px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.nav-logo-mark::after {
+  content: '';
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+  animation: shimmer 3s infinite;
+}
+@keyframes shimmer { 0%,100%{transform:translateX(-100%) translateY(-100%)} 50%{transform:translateX(50%) translateY(50%)} }
+.nav-logo-text {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--white);
+  letter-spacing: 0.02em;
+}
+.nav-logo-sub {
+  font-size: 10px;
+  color: var(--dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 36px;
+  list-style: none;
+}
+.nav-links a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  transition: color 0.2s;
+  cursor: pointer;
+}
+.nav-links a:hover { color: var(--white); }
+.nav-cta {
+  background: var(--purple);
+  color: var(--white) !important;
+  padding: 9px 22px;
+  border-radius: 6px;
+  font-weight: 600 !important;
+  transition: background 0.2s, transform 0.15s !important;
+}
+.nav-cta:hover { background: var(--violet) !important; transform: translateY(-1px); }
+
+/* ── Page sections ───────────────────────────────────────────── */
+.page { display: none; position: relative; z-index: 1; }
+.page.active { display: block; }
+
+/* ── HERO ────────────────────────────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120px 5% 80px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Radial glow behind hero */
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 20%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px; height: 800px;
+  background: radial-gradient(ellipse, rgba(108,92,231,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 32px;
+  animation: fadeUp 0.8s ease both;
+}
+.hero-eyebrow-dot {
+  width: 6px; height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(52px, 7vw, 96px);
+  font-weight: 800;
+  line-height: 1.0;
+  letter-spacing: -0.03em;
+  color: var(--white);
+  margin-bottom: 8px;
+  animation: fadeUp 0.8s 0.1s ease both;
+}
+.hero-title-accent {
+  background: linear-gradient(135deg, var(--purple), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-subtitle-large {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 5vw, 68px);
+  font-weight: 700;
+  color: var(--muted);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 32px;
+  animation: fadeUp 0.8s 0.2s ease both;
+}
+.hero-desc {
+  max-width: 620px;
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 0 auto 48px;
+  animation: fadeUp 0.8s 0.3s ease both;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+  animation: fadeUp 0.8s 0.4s ease both;
+  margin-bottom: 80px;
+}
+
+.btn-primary {
+  padding: 15px 36px;
+  background: var(--purple);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.btn-primary:hover { background: var(--violet); transform: translateY(-2px); box-shadow: 0 12px 40px rgba(108,92,231,0.4); }
+
+.btn-secondary {
+  padding: 15px 36px;
+  background: transparent;
+  color: var(--offwhite);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+}
+.btn-secondary:hover { border-color: var(--purple); color: var(--white); background: rgba(108,92,231,0.08); }
+
+/* Hero stats row */
+.hero-stats {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  animation: fadeUp 0.8s 0.5s ease both;
+}
+.hero-stat {
+  padding: 20px 40px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+  flex: 1;
+}
+.hero-stat:last-child { border-right: none; }
+.hero-stat-val {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--white);
+  display: block;
+}
+.hero-stat-lbl {
+  font-size: 11px;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Scrolling ticker */
+.ticker-wrap {
+  width: 100%;
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 0;
+  background: rgba(108,92,231,0.04);
+  margin-top: 80px;
+}
+.ticker {
+  display: flex;
+  gap: 60px;
+  animation: ticker 30s linear infinite;
+  white-space: nowrap;
+  width: max-content;
+}
+.ticker-item {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--dim);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ticker-item::before {
+  content: '';
+  width: 4px; height: 4px;
+  background: var(--purple);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+@keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+
+/* ── FEATURES SECTION ────────────────────────────────────────── */
+.section {
+  padding: 120px 5%;
+  position: relative;
+  z-index: 1;
+}
+.section-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--purple);
+  margin-bottom: 16px;
+}
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 4vw, 56px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--white);
+  margin-bottom: 20px;
+}
+.section-desc {
+  font-size: 18px;
+  font-weight: 300;
+  color: var(--muted);
+  max-width: 560px;
+  line-height: 1.7;
+}
+
+/* Feature grid */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  margin-top: 80px;
+  background: var(--border);
+}
+.feature-card {
+  background: var(--card);
+  padding: 40px 36px;
+  transition: background 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--purple), var(--cyan));
+  transform: scaleX(0);
+  transition: transform 0.3s;
+  transform-origin: left;
+}
+.feature-card:hover { background: var(--surface); }
+.feature-card:hover::before { transform: scaleX(1); }
+
+.feature-icon {
+  width: 48px; height: 48px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+.feature-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 10px;
+}
+.feature-desc {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+/* ── PIPELINE SECTION ────────────────────────────────────────── */
+.pipeline-section {
+  padding: 120px 5%;
+  background: var(--deep);
+  position: relative;
+  z-index: 1;
+}
+.pipeline-steps {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0;
+  margin-top: 80px;
+  position: relative;
+}
+.pipeline-steps::before {
+  content: '';
+  position: absolute;
+  top: 32px; left: 10%;
+  width: 80%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--purple), var(--cyan), var(--purple), transparent);
+}
+.pipeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0 16px;
+}
+.pipeline-num {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 2px solid var(--purple);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 24px;
+  position: relative;
+  z-index: 1;
+}
+.pipeline-step-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 8px;
+}
+.pipeline-step-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ── PRICING ─────────────────────────────────────────────────── */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-top: 80px;
+}
+.pricing-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 28px;
+  position: relative;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+.pricing-card:hover { transform: translateY(-4px); box-shadow: 0 24px 60px rgba(108,92,231,0.2); }
+.pricing-card.featured {
+  border-color: var(--purple);
+  background: linear-gradient(180deg, rgba(108,92,231,0.12) 0%, var(--card) 100%);
+}
+.pricing-badge {
+  position: absolute;
+  top: -12px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--purple);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 14px;
+  border-radius: 99px;
+}
+.pricing-plan {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+.pricing-price {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--white);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.pricing-period {
+  font-size: 13px;
+  color: var(--dim);
+  margin-bottom: 28px;
+}
+.pricing-divider {
+  height: 1px;
+  background: var(--border);
+  margin-bottom: 24px;
+}
+.pricing-feature {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.pricing-check {
+  color: var(--green);
+  font-size: 14px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.pricing-cta {
+  width: 100%;
+  margin-top: 28px;
+  padding: 13px;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--offwhite);
+}
+.pricing-cta:hover { border-color: var(--purple); background: rgba(108,92,231,0.1); }
+.pricing-card.featured .pricing-cta {
+  background: var(--purple);
+  border-color: var(--purple);
+  color: #fff;
+}
+.pricing-card.featured .pricing-cta:hover { background: var(--violet); }
+
+/* ── THREAT FEEDS SECTION ────────────────────────────────────── */
+.feeds-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 60px;
+}
+.feed-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 20px;
+  transition: border-color 0.3s;
+}
+.feed-card:hover { border-color: var(--purple); }
+.feed-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 6px;
+}
+.feed-desc {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.feed-tag {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.feed-tag.free { background: rgba(0,184,148,0.12); color: var(--green); }
+.feed-tag.live { background: rgba(108,92,231,0.12); color: var(--accent); }
+
+/* ── SECURITY SECTION ────────────────────────────────────────── */
+.security-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-top: 60px;
+}
+.security-item {
+  display: flex;
+  gap: 20px;
+  padding: 28px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.3s;
+}
+.security-item:hover { border-color: var(--purple); }
+.security-icon-wrap {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  background: rgba(108,92,231,0.12);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 20px;
+}
+.security-title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--white);
+  margin-bottom: 6px;
+}
+.security-desc {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ── ABOUT PAGE ──────────────────────────────────────────────── */
+.about-hero {
+  padding: 160px 5% 80px;
+  position: relative;
+  z-index: 1;
+}
+.about-hero::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 50%;
+  height: 100%;
+  background: radial-gradient(ellipse at right, rgba(108,92,231,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+.about-tag {
+  display: inline-block;
+  padding: 5px 14px;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 24px;
+}
+.about-visual {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 40px;
+  position: relative;
+  overflow: hidden;
+}
+.about-visual::before {
+  content: '';
+  position: absolute;
+  top: -50px; right: -50px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(108,92,231,0.15) 0%, transparent 70%);
+}
+.metric-row {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.metric-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background: var(--surface);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.metric-label { font-size: 13px; color: var(--muted); }
+.metric-val {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--white);
+}
+.metric-val.green { color: var(--green); }
+.metric-val.gold  { color: var(--gold); }
+.metric-val.cyan  { color: var(--cyan); }
+
+/* ── CONTACT PAGE ────────────────────────────────────────────── */
+.contact-hero {
+  padding: 160px 5% 80px;
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  padding: 0 5% 120px;
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.contact-form {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px;
+}
+.form-group { margin-bottom: 20px; }
+.form-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: var(--offwhite);
+  font-family: var(--font-body);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--purple);
+}
+.form-select option { background: var(--deep); }
+.form-textarea { resize: vertical; min-height: 120px; }
+.form-submit {
+  width: 100%;
+  padding: 15px;
+  background: var(--purple);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.form-submit:hover { background: var(--violet); transform: translateY(-1px); }
+
+.contact-info { padding-top: 10px; }
+.contact-info-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--white);
+  margin-bottom: 16px;
+}
+.contact-info-desc {
+  font-size: 15px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 40px;
+}
+.contact-item {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.contact-item-icon { font-size: 20px; }
+.contact-item-label { font-size: 11px; color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.contact-item-val { font-size: 14px; color: var(--offwhite); font-weight: 500; }
+
+/* ── FOOTER ──────────────────────────────────────────────────── */
+footer {
+  padding: 60px 5% 40px;
+  border-top: 1px solid var(--border);
+  position: relative;
+  z-index: 1;
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 60px;
+  margin-bottom: 60px;
+}
+.footer-brand-desc {
+  font-size: 13px;
+  color: var(--dim);
+  line-height: 1.7;
+  margin-top: 16px;
+  max-width: 280px;
+}
+.footer-col-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--white);
+  letter-spacing: 0.04em;
+  margin-bottom: 16px;
+}
+.footer-links { list-style: none; }
+.footer-links li { margin-bottom: 10px; }
+.footer-links a {
+  font-size: 13px;
+  color: var(--dim);
+  text-decoration: none;
+  transition: color 0.2s;
+  cursor: pointer;
+}
+.footer-links a:hover { color: var(--muted); }
+.footer-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--dim);
+}
+.footer-tlp {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border: 1px solid rgba(253,203,110,0.3);
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--gold);
+}
+
+/* ── Terminal block ──────────────────────────────────────────── */
+.terminal {
+  background: var(--deep);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 60px auto 0;
+  max-width: 720px;
+}
+.terminal-header {
+  padding: 12px 16px;
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+.terminal-title { font-size: 11px; color: var(--dim); margin-left: 8px; font-family: var(--font-mono); }
+.terminal-body { padding: 24px; font-family: var(--font-mono); font-size: 13px; line-height: 1.8; }
+.t-prompt { color: var(--purple); }
+.t-cmd { color: var(--offwhite); }
+.t-output { color: var(--muted); }
+.t-success { color: var(--green); }
+.t-warn { color: var(--gold); }
+.t-val { color: var(--cyan); }
+
+/* ── Scroll animations ───────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── CTA BAND ────────────────────────────────────────────────── */
+.cta-band {
+  padding: 100px 5%;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+.cta-band::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, rgba(108,92,231,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cta-band-title {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 4vw, 52px);
+  font-weight: 800;
+  color: var(--white);
+  margin-bottom: 20px;
+  letter-spacing: -0.02em;
+}
+.cta-band-desc {
+  font-size: 18px;
+  color: var(--muted);
+  max-width: 500px;
+  margin: 0 auto 40px;
+  font-weight: 300;
+}
+
+/* ── Mobile ──────────────────────────────────────────────────── */
+.hamburger { display: none; }
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .hamburger { display: flex; flex-direction: column; gap: 5px; cursor: pointer; }
+  .hamburger span { width: 22px; height: 2px; background: var(--muted); border-radius: 2px; }
+  .feature-grid, .pricing-grid, .feeds-grid { grid-template-columns: 1fr; }
+  .pipeline-steps { grid-template-columns: 1fr; }
+  .pipeline-steps::before { display: none; }
+  .about-grid, .contact-grid, .security-grid { grid-template-columns: 1fr; }
+  .footer-grid { grid-template-columns: 1fr 1fr; }
+  .hero-stats { flex-direction: column; border: none; gap: 16px; }
+  .hero-stat { border: 1px solid var(--border); border-radius: 10px; border-right: 1px solid var(--border); }
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ─────────────────────────────────────────────────── -->
+<nav id="main-nav">
+  <a class="nav-logo" onclick="showPage('home')">
+    <div class="nav-logo-mark">T</div>
+    <div>
+      <div class="nav-logo-text">Tesseract Security</div>
+      <div class="nav-logo-sub">Argus Platform</div>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a onclick="showPage('home')">Home</a></li>
+    <li><a onclick="showPage('product')">Product</a></li>
+    <li><a onclick="showPage('pricing')">Pricing</a></li>
+    <li><a onclick="showPage('about')">About</a></li>
+    <li><a onclick="showPage('contact')" class="nav-cta">Get Started</a></li>
+  </ul>
+  <div class="hamburger" onclick="toggleMenu()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- HOME PAGE                                                  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="page-home" class="page active">
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-eyebrow">
+      <span class="hero-eyebrow-dot"></span>
+      Threat intelligence · Powered by Argus
+    </div>
+    <h1 class="hero-title">
+      <span class="hero-title-accent">See Everything.</span>
+    </h1>
+    <div class="hero-subtitle-large">Miss Nothing.</div>
+    <p class="hero-desc">Argus monitors your organisation's entire digital footprint across eight live threat feeds — 24 hours a day, 7 days a week — and delivers a structured intelligence report to your security team every morning.</p>
+    <div class="hero-actions">
+      <button class="btn-primary" onclick="showPage('contact')">Start Free Trial →</button>
+      <button class="btn-secondary" onclick="showPage('product')">See How It Works</button>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <span class="hero-stat-val">8</span>
+        <span class="hero-stat-lbl">Live threat feeds</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-val">&lt;2min</span>
+        <span class="hero-stat-lbl">Raw data to report</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-val">24/7</span>
+        <span class="hero-stat-lbl">Continuous monitoring</span>
+      </div>
+      <div class="hero-stat">
+        <span class="hero-stat-val">$299</span>
+        <span class="hero-stat-lbl">Starting per month</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ticker -->
+  <div class="ticker-wrap">
+    <div class="ticker">
+      <span class="ticker-item">VirusTotal Integration</span>
+      <span class="ticker-item">AlienVault OTX Pulses</span>
+      <span class="ticker-item">AbuseIPDB Reputation</span>
+      <span class="ticker-item">CISA KEV Feed</span>
+      <span class="ticker-item">Shodan Exposure Scan</span>
+      <span class="ticker-item">HaveIBeenPwned Breach Check</span>
+      <span class="ticker-item">Dark Web Monitoring</span>
+      <span class="ticker-item">MITRE ATT&CK Mapping</span>
+      <span class="ticker-item">Automated PDF Reports</span>
+      <span class="ticker-item">SIEM Integration</span>
+      <span class="ticker-item">Slack Delivery</span>
+      <span class="ticker-item">5-Tier RBAC</span>
+      <!-- duplicate for seamless loop -->
+      <span class="ticker-item">VirusTotal Integration</span>
+      <span class="ticker-item">AlienVault OTX Pulses</span>
+      <span class="ticker-item">AbuseIPDB Reputation</span>
+      <span class="ticker-item">CISA KEV Feed</span>
+      <span class="ticker-item">Shodan Exposure Scan</span>
+      <span class="ticker-item">HaveIBeenPwned Breach Check</span>
+      <span class="ticker-item">Dark Web Monitoring</span>
+      <span class="ticker-item">MITRE ATT&CK Mapping</span>
+      <span class="ticker-item">Automated PDF Reports</span>
+      <span class="ticker-item">SIEM Integration</span>
+      <span class="ticker-item">Slack Delivery</span>
+      <span class="ticker-item">5-Tier RBAC</span>
+    </div>
+  </div>
+
+  <!-- Features -->
+  <section class="section reveal">
+    <div class="section-eyebrow">Why Argus</div>
+    <h2 class="section-title">Built for the teams<br>attackers target most</h2>
+    <p class="section-desc">Mid-market organisations face enterprise-level threats but lack enterprise-level security budgets. Argus changes that equation permanently.</p>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(108,92,231,0.15);">🛰️</div>
+        <div class="feature-title">Continuous Collection</div>
+        <p class="feature-desc">Argus Sentinel ingests threat data from eight live sources simultaneously, every hour, building a complete picture of your external threat exposure.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(0,206,201,0.12);">🧠</div>
+        <div class="feature-title">Automated Analysis</div>
+        <p class="feature-desc">Every indicator is scored, MITRE ATT&CK mapped, and correlated against related threats — without a single analyst writing a query.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(0,184,148,0.12);">📋</div>
+        <div class="feature-title">Morning Intelligence Brief</div>
+        <p class="feature-desc">A structured, TLP-classified PDF lands in your SOC team's inbox every morning with prioritised recommendations. Ready to act on in 10 minutes.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(253,203,110,0.12);">🔗</div>
+        <div class="feature-title">SIEM-Ready Output</div>
+        <p class="feature-desc">Every report is also delivered as structured JSON to your Splunk, QRadar, or Microsoft Sentinel instance via authenticated webhook. Zero integration friction.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(255,118,117,0.12);">🌑</div>
+        <div class="feature-title">Dark Web Monitoring</div>
+        <p class="feature-desc">Argus watches breach databases, paste sites, and credential leak sources for your domains and brand names — finding exposure before attackers exploit it.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(108,92,231,0.15);">🔒</div>
+        <div class="feature-title">Enterprise Security</div>
+        <p class="feature-desc">JWT tokens, API keys, Google and Microsoft SSO, 5-tier RBAC, full audit logging, and TLS 1.3 throughout. Built for CISOs, trusted by compliance teams.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Terminal demo -->
+  <section class="section reveal" style="padding-top:0;">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div class="section-eyebrow">Live intelligence</div>
+      <h2 class="section-title">Your morning brief,<br>every morning</h2>
+    </div>
+    <div class="terminal">
+      <div class="terminal-header">
+        <div class="terminal-dot" style="background:#ff5f57;"></div>
+        <div class="terminal-dot" style="background:#febc2e;"></div>
+        <div class="terminal-dot" style="background:#28c840;"></div>
+        <span class="terminal-title">argus-sentinel — threat collection running</span>
+      </div>
+      <div class="terminal-body">
+        <div><span class="t-prompt">→ </span><span class="t-cmd">argus scan --profile acme-corp --sources all</span></div>
+        <div class="t-output">Initialising Sentinel collectors...</div>
+        <div><span class="t-success">✓ </span><span class="t-output">VirusTotal      </span><span class="t-val">12 indicators</span></div>
+        <div><span class="t-success">✓ </span><span class="t-output">AlienVault OTX  </span><span class="t-val">34 indicators</span></div>
+        <div><span class="t-success">✓ </span><span class="t-output">AbuseIPDB       </span><span class="t-val">8 indicators</span></div>
+        <div><span class="t-success">✓ </span><span class="t-output">CISA KEV        </span><span class="t-val">3 critical CVEs</span></div>
+        <div><span class="t-success">✓ </span><span class="t-output">Shodan          </span><span class="t-val">2 exposed services</span></div>
+        <div><span class="t-success">✓ </span><span class="t-output">HIBP            </span><span class="t-val">1 domain breach found</span></div>
+        <div class="t-output" style="margin-top:8px;">Deduplication complete: 47 unique IOCs</div>
+        <div class="t-output">Running Insight analysis engine...</div>
+        <div><span class="t-warn">⚠ </span><span class="t-output">Overall risk score: </span><span class="t-val">7.4 / 10</span><span class="t-warn"> HIGH</span></div>
+        <div><span class="t-success">✓ </span><span class="t-output">MITRE ATT&CK mapped: </span><span class="t-val">T1190, T1589.002, T1078</span></div>
+        <div><span class="t-success">✓ </span><span class="t-output">Report generated — delivering to 3 channels</span></div>
+        <div><span class="t-success">✓ </span><span class="t-output">PDF sent → soc@acme-corp.com</span></div>
+        <div><span class="t-success">✓ </span><span class="t-output">Slack notification sent → #security-alerts</span></div>
+        <div><span class="t-success">✓ </span><span class="t-output">SIEM payload pushed → Splunk HEC endpoint</span></div>
+        <div style="margin-top:8px;"><span class="t-prompt">→ </span><span class="t-output">Next scan in 60 minutes</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Band -->
+  <div class="cta-band reveal">
+    <h2 class="cta-band-title">Your domain is being<br>watched right now.</h2>
+    <p class="cta-band-desc">The question is whether it's you doing the watching, or someone else. Start your free 30-day trial today.</p>
+    <button class="btn-primary" onclick="showPage('contact')">Get Your Free Threat Scan →</button>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PRODUCT PAGE                                               -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="page-product" class="page">
+
+  <section class="section" style="padding-top:160px;">
+    <div class="section-eyebrow">The Platform</div>
+    <h1 class="section-title">Two engines.<br>One intelligence pipeline.</h1>
+    <p class="section-desc">Argus Sentinel collects. Argus Insight analyses. Together they eliminate the gap between threat data existing and your team knowing about it.</p>
+  </section>
+
+  <!-- Pipeline -->
+  <div class="pipeline-section reveal">
+    <div style="text-align:center;margin-bottom:20px;">
+      <div class="section-eyebrow">Data Pipeline</div>
+      <h2 class="section-title">From raw feed to<br>actionable report in 2 minutes</h2>
+    </div>
+    <div class="pipeline-steps">
+      <div class="pipeline-step">
+        <div class="pipeline-num">01</div>
+        <div class="pipeline-step-title">Ingest</div>
+        <p class="pipeline-step-desc">Eight live threat feeds collected in parallel, every hour, for every active client profile.</p>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-num">02</div>
+        <div class="pipeline-step-title">Normalise</div>
+        <p class="pipeline-step-desc">All indicators unified into a single schema. Duplicates removed. Timestamps aligned.</p>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-num">03</div>
+        <div class="pipeline-step-title">Score</div>
+        <p class="pipeline-step-desc">Risk score 0–10 assigned per indicator. MITRE ATT&CK tactics and techniques mapped automatically.</p>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-num">04</div>
+        <div class="pipeline-step-title">Correlate</div>
+        <p class="pipeline-step-desc">Related indicators clustered by campaign, vendor, and ASN to reveal coordinated threat activity.</p>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-num">05</div>
+        <div class="pipeline-step-title">Deliver</div>
+        <p class="pipeline-step-desc">PDF report, Slack notification, and SIEM JSON payload delivered simultaneously to all configured channels.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Threat Feeds -->
+  <section class="section reveal">
+    <div class="section-eyebrow">Argus Sentinel</div>
+    <h2 class="section-title">Eight sources.<br>One complete picture.</h2>
+    <p class="section-desc">Every feed is integrated, normalised, and deduped automatically. You configure your domains and IPs once. Argus does the rest.</p>
+    <div class="feeds-grid">
+      <div class="feed-card">
+        <div class="feed-name">VirusTotal</div>
+        <p class="feed-desc">90+ antivirus engine consensus on domains and IP addresses. Malicious verdicts scored by detection ratio.</p>
+        <span class="feed-tag live">Live</span>
+      </div>
+      <div class="feed-card">
+        <div class="feed-name">AlienVault OTX</div>
+        <p class="feed-desc">19 million+ community IOCs from global security researchers. Pulse-based threat correlation.</p>
+        <span class="feed-tag free">Free tier</span>
+      </div>
+      <div class="feed-card">
+        <div class="feed-name">AbuseIPDB</div>
+        <p class="feed-desc">IP abuse confidence scoring from 0–100%. Flags malicious IPs before they reach your network.</p>
+        <span class="feed-tag free">Free tier</span>
+      </div>
+      <div class="feed-card">
+        <div class="feed-name">CISA KEV</div>
+        <p class="feed-desc">US Government Known Exploited Vulnerabilities. Every CVE being actively exploited in the wild right now.</p>
+        <span class="feed-tag free">Always free</span>
+      </div>
+      <div class="feed-card">
+        <div class="feed-name">Shodan</div>
+        <p class="feed-desc">Internet exposure scanning. Discovers open ports, exposed services, and CVEs on your public-facing infrastructure.</p>
+        <span class="feed-tag live">Live</span>
+      </div>
+      <div class="feed-card">
+        <div class="feed-name">HaveIBeenPwned</div>
+        <p class="feed-desc">Domain and email breach detection across 12 billion+ compromised records. Finds exposure before attackers use it.</p>
+        <span class="feed-tag live">Live</span>
+      </div>
+      <div class="feed-card">
+        <div class="feed-name">BreachDirectory</div>
+        <p class="feed-desc">Leaked credential search. Identifies compromised passwords and accounts linked to your organisation.</p>
+        <span class="feed-tag live">Live</span>
+      </div>
+      <div class="feed-card">
+        <div class="feed-name">Paste Monitor</div>
+        <p class="feed-desc">Public paste site surveillance. Detects your domain or brand name appearing on leak sites and paste boards.</p>
+        <span class="feed-tag live">Live</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Security Architecture -->
+  <section class="section reveal" style="background:var(--deep);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+    <div class="section-eyebrow">Security Architecture</div>
+    <h2 class="section-title">Built for CISOs.<br>Trusted by compliance teams.</h2>
+    <p class="section-desc">Every layer of Argus is designed to meet enterprise security requirements — not retrofitted to them.</p>
+    <div class="security-grid">
+      <div class="security-item">
+        <div class="security-icon-wrap">🔑</div>
+        <div>
+          <div class="security-title">JWT + API Key Authentication</div>
+          <p class="security-desc">Short-lived access tokens, 30-day refresh rotation, Redis-backed blocklist for instant revocation. API keys are SHA-256 hashed — the raw key is shown exactly once.</p>
+        </div>
+      </div>
+      <div class="security-item">
+        <div class="security-icon-wrap">🏛️</div>
+        <div>
+          <div class="security-title">Google & Microsoft SSO</div>
+          <p class="security-desc">OAuth2 SSO with Google Workspace and Microsoft Entra ID. Your team logs in with their existing work credentials. PKCE state validation on every flow.</p>
+        </div>
+      </div>
+      <div class="security-item">
+        <div class="security-icon-wrap">🎭</div>
+        <div>
+          <div class="security-title">5-Tier RBAC</div>
+          <p class="security-desc">Super admin, org admin, analyst, viewer, and API client roles — each with precisely scoped permissions. 14 granular permission types enforced on every API endpoint.</p>
+        </div>
+      </div>
+      <div class="security-item">
+        <div class="security-icon-wrap">☠️</div>
+        <div>
+          <div class="security-title">License Kill Switch</div>
+          <p class="security-desc">Argus validates licences every 24 hours against a remote server. Instant remote suspension works even on self-hosted deployments. 72-hour grace period for network issues.</p>
+        </div>
+      </div>
+      <div class="security-item">
+        <div class="security-icon-wrap">📋</div>
+        <div>
+          <div class="security-title">Full Audit Logging</div>
+          <p class="security-desc">Every login, action, configuration change, and report generation is recorded per tenant with IP address and timestamp. Ready for compliance evidence on demand.</p>
+        </div>
+      </div>
+      <div class="security-item">
+        <div class="security-icon-wrap">🔐</div>
+        <div>
+          <div class="security-title">TLS 1.3 Throughout</div>
+          <p class="security-desc">All traffic encrypted in transit. HSTS enabled with preload. HTTP strictly redirected to HTTPS. Rate limiting at 60 req/min with account lockout after 5 failed logins.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="cta-band reveal">
+    <h2 class="cta-band-title">Ready to see Argus in action?</h2>
+    <p class="cta-band-desc">We will run a live scan of your domain during the demo. No slides. Just your own threat data on screen.</p>
+    <button class="btn-primary" onclick="showPage('contact')">Book a 15-Minute Demo →</button>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- PRICING PAGE                                               -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="page-pricing" class="page">
+
+  <section class="section" style="padding-top:160px;text-align:center;">
+    <div class="section-eyebrow">Pricing</div>
+    <h1 class="section-title">Simple pricing.<br>No surprises.</h1>
+    <p class="section-desc" style="margin:0 auto;">Every plan includes a 30-day free trial. No credit card required to start. Cancel any time.</p>
+    <div class="pricing-grid reveal" style="text-align:left;">
+      <div class="pricing-card">
+        <div class="pricing-plan">Starter</div>
+        <div class="pricing-price">$299</div>
+        <div class="pricing-period">per month, billed monthly</div>
+        <div class="pricing-divider"></div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> 1 client profile</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> 3 user accounts</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Weekly threat reports</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Email delivery</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> All 8 threat feeds</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Dashboard access</div>
+        <div class="pricing-feature" style="opacity:0.4;">✗ Slack delivery</div>
+        <div class="pricing-feature" style="opacity:0.4;">✗ SIEM integration</div>
+        <button class="pricing-cta" onclick="showPage('contact')">Start Free Trial</button>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-badge">Most Popular</div>
+        <div class="pricing-plan">Professional</div>
+        <div class="pricing-price">$799</div>
+        <div class="pricing-period">per month, billed monthly</div>
+        <div class="pricing-divider"></div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> 5 client profiles</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> 10 user accounts</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Daily threat reports</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Email delivery</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> All 8 threat feeds</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Slack integration</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> SIEM webhook</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> API access</div>
+        <button class="pricing-cta" onclick="showPage('contact')">Start Free Trial</button>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-plan">Enterprise</div>
+        <div class="pricing-price">$2,500</div>
+        <div class="pricing-period">per month, billed monthly</div>
+        <div class="pricing-divider"></div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> 50 client profiles</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> 100 user accounts</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Hourly reports</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> All delivery channels</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> SLA guarantee</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Dedicated support</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Priority API access</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Custom feeds on request</div>
+        <button class="pricing-cta" onclick="showPage('contact')">Contact Sales</button>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-plan">MSSP Partner</div>
+        <div class="pricing-price">$1,500</div>
+        <div class="pricing-period">per month, flat rate</div>
+        <div class="pricing-divider"></div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Unlimited profiles</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> 200 user accounts</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> White-label branding</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Your domain</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Sub-tenant management</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Revenue share available</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Dedicated onboarding</div>
+        <div class="pricing-feature"><span class="pricing-check">✓</span> Partner SLA</div>
+        <button class="pricing-cta" onclick="showPage('contact')">Become a Partner</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section reveal" style="max-width:760px;margin:0 auto;padding-top:0;">
+    <div class="section-eyebrow" style="text-align:center;">Common questions</div>
+    <h2 class="section-title" style="text-align:center;font-size:36px;">FAQ</h2>
+    <div style="display:flex;flex-direction:column;gap:16px;margin-top:40px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--white);margin-bottom:10px;">How long does setup take?</div>
+        <p style="font-size:14px;color:var(--muted);">15 minutes. Create an account, enter your domains and IP ranges, set your report recipients, and click Scan Now. Your first threat report is ready before your coffee gets cold.</p>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--white);margin-bottom:10px;">Do I need to install anything?</div>
+        <p style="font-size:14px;color:var(--muted);">Nothing. Argus is entirely cloud-hosted. No agents, no appliances, no VPN. Your team accesses it via browser and receives reports via email, Slack, or your SIEM.</p>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--white);margin-bottom:10px;">What if we want to host it ourselves?</div>
+        <p style="font-size:14px;color:var(--muted);">Enterprise plan clients can deploy Argus on their own Kubernetes or OpenShift infrastructure with full support from Tesseract Security. Your data never leaves your environment.</p>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--white);margin-bottom:10px;">How is Argus different from a SIEM?</div>
+        <p style="font-size:14px;color:var(--muted);">A SIEM processes events from inside your network. Argus watches the world outside — threat feeds, breach databases, dark web, exposed infrastructure. They complement each other; Argus even feeds directly into your SIEM.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- ABOUT PAGE                                                 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="page-about" class="page">
+
+  <div class="about-hero">
+    <div class="about-grid">
+      <div>
+        <span class="about-tag">About Tesseract Security</span>
+        <h1 class="section-title">We built the platform<br>we wished existed.</h1>
+        <p style="font-size:17px;color:var(--muted);line-height:1.8;margin-bottom:32px;font-weight:300;">Tesseract Security was founded by a cybersecurity industry veteran who saw the same story play out repeatedly — mid-market organisations flying blind while attackers mapped their infrastructure, breached their credentials, and exploited vulnerabilities that had been on public feeds for weeks.</p>
+        <p style="font-size:17px;color:var(--muted);line-height:1.8;margin-bottom:40px;font-weight:300;">The enterprise tools existed but were priced for Fortune 500 budgets and required dedicated analyst teams to operate. The gap was enormous and growing. Argus is the answer we built to fill it.</p>
+        <button class="btn-primary" onclick="showPage('contact')">Talk to Us →</button>
+      </div>
+      <div class="about-visual">
+        <div style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:var(--dim);margin-bottom:24px;">Platform Metrics</div>
+        <div class="metric-row">
+          <div class="metric-item">
+            <span class="metric-label">Threat feeds integrated</span>
+            <span class="metric-val cyan">8</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Lines of production code</span>
+            <span class="metric-val">5,000+</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Test cases passing</span>
+            <span class="metric-val green">60+</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Deployment infrastructure</span>
+            <span class="metric-val" style="font-size:16px;">OpenShift / K8s</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Entry price vs Recorded Future</span>
+            <span class="metric-val gold">35× cheaper</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mission -->
+  <section class="section reveal" style="background:var(--deep);border-top:1px solid var(--border);">
+    <div style="max-width:800px;">
+      <div class="section-eyebrow">Our Mission</div>
+      <h2 class="section-title">Enterprise-grade threat intelligence<br>for every organisation.</h2>
+      <p style="font-size:18px;color:var(--muted);line-height:1.8;font-weight:300;margin-bottom:32px;">Not just the ones that can afford a $150K/year contract and a team of six analysts. Every company that holds customer data, processes payments, or runs critical infrastructure deserves visibility into the threats targeting them.</p>
+      <p style="font-size:18px;color:var(--muted);line-height:1.8;font-weight:300;">That is what Argus delivers. And it starts at $299 a month.</p>
+    </div>
+  </section>
+
+  <!-- Values -->
+  <section class="section reveal">
+    <div class="section-eyebrow">How we work</div>
+    <h2 class="section-title">Principles we build by</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:60px;">
+      <div style="padding:32px;background:var(--card);border:1px solid var(--border);border-radius:14px;">
+        <div style="font-size:28px;margin-bottom:16px;">🎯</div>
+        <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--white);margin-bottom:10px;">Precision over noise</div>
+        <p style="font-size:14px;color:var(--muted);">We do not surface every alert. We surface the right alerts, scored by risk, mapped to MITRE, with clear recommendations. Intelligence means knowing what matters.</p>
+      </div>
+      <div style="padding:32px;background:var(--card);border:1px solid var(--border);border-radius:14px;">
+        <div style="font-size:28px;margin-bottom:16px;">⚡</div>
+        <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--white);margin-bottom:10px;">Speed to value</div>
+        <p style="font-size:14px;color:var(--muted);">15 minutes from signup to first report. No professional services engagement, no 6-week onboarding, no configuration project. The product works immediately.</p>
+      </div>
+      <div style="padding:32px;background:var(--card);border:1px solid var(--border);border-radius:14px;">
+        <div style="font-size:28px;margin-bottom:16px;">🔒</div>
+        <div style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--white);margin-bottom:10px;">Security first, always</div>
+        <p style="font-size:14px;color:var(--muted);">A threat intelligence company that is not itself secure is not credible. Every line of Argus is built to enterprise security standards. We eat our own cooking.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- CONTACT PAGE                                               -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="page-contact" class="page">
+
+  <div class="contact-hero">
+    <div class="section-eyebrow">Get in touch</div>
+    <h1 class="section-title">Start your free<br>30-day trial today.</h1>
+    <p style="font-size:17px;color:var(--muted);font-weight:300;line-height:1.7;">No credit card. No setup fee. Just your domain, your first threat scan, and a report in your inbox within 2 minutes of signing up.</p>
+  </div>
+
+  <div class="contact-grid">
+    <div class="contact-form">
+      <h3 style="font-family:var(--font-display);font-size:20px;font-weight:700;color:var(--white);margin-bottom:24px;">Tell us about your organisation</h3>
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" class="form-input" placeholder="Jane Smith">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Work Email</label>
+        <input type="email" class="form-input" placeholder="jane@yourcompany.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Company Name</label>
+        <input type="text" class="form-input" placeholder="Acme Corporation">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Company Domain</label>
+        <input type="text" class="form-input" placeholder="acme.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Industry</label>
+        <select class="form-select">
+          <option>Financial Services / FinTech</option>
+          <option>Legal</option>
+          <option>Healthcare</option>
+          <option>Manufacturing</option>
+          <option>Technology</option>
+          <option>Retail / eCommerce</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">What are you looking for?</label>
+        <textarea class="form-textarea" placeholder="Brief description of your security monitoring needs, team size, or any specific threats you're concerned about..."></textarea>
+      </div>
+      <button class="form-submit" onclick="handleFormSubmit()">Request Free Trial & Scan →</button>
+    </div>
+
+    <div class="contact-info">
+      <div class="contact-info-title">We will scan your domain<br>before we call.</div>
+      <p class="contact-info-desc">When you submit this form, we run a live Argus scan of the domain you provide and bring the results to the conversation. No slides. Just your own threat data.</p>
+
+      <div class="contact-item">
+        <div class="contact-item-icon">✉️</div>
+        <div>
+          <div class="contact-item-label">Email</div>
+          <div class="contact-item-val">contact@tesseractsecurity.github.io</div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-item-icon">🔒</div>
+        <div>
+          <div class="contact-item-label">Security issues</div>
+          <div class="contact-item-val">security@tesseractsecurity.github.io</div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-item-icon">🤝</div>
+        <div>
+          <div class="contact-item-label">MSSP Partnerships</div>
+          <div class="contact-item-val">partners@tesseractsecurity.github.io</div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-item-icon">📊</div>
+        <div>
+          <div class="contact-item-label">Investors</div>
+          <div class="contact-item-val">investors@tesseractsecurity.github.io</div>
+        </div>
+      </div>
+
+      <div style="margin-top:32px;padding:24px;background:var(--card);border:1px solid var(--border);border-radius:12px;">
+        <div style="font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--dim);margin-bottom:12px;">Response time</div>
+        <p style="font-size:14px;color:var(--muted);">We respond to all trial requests within 4 business hours. Demo slots available same-day.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── FOOTER ──────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-grid">
+    <div>
+      <div class="nav-logo" style="cursor:default;">
+        <div class="nav-logo-mark">T</div>
+        <div>
+          <div class="nav-logo-text">Tesseract Security</div>
+          <div class="nav-logo-sub">Argus Platform</div>
+        </div>
+      </div>
+      <p class="footer-brand-desc">Automated threat intelligence for mid-market organisations. Eight live feeds. One morning report. Zero analyst hours required.</p>
+      <div class="footer-tlp" style="margin-top:20px;">TLP:WHITE — Public Website</div>
+    </div>
+    <div>
+      <div class="footer-col-title">Platform</div>
+      <ul class="footer-links">
+        <li><a onclick="showPage('product')">How Argus Works</a></li>
+        <li><a onclick="showPage('product')">Threat Feeds</a></li>
+        <li><a onclick="showPage('product')">Security Architecture</a></li>
+        <li><a onclick="showPage('pricing')">Pricing</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Company</div>
+      <ul class="footer-links">
+        <li><a onclick="showPage('about')">About</a></li>
+        <li><a onclick="showPage('about')">Our Mission</a></li>
+        <li><a onclick="showPage('contact')">Contact</a></li>
+        <li><a onclick="showPage('contact')">MSSP Partners</a></li>
+      </ul>
+    </div>
+    <div>
+      <div class="footer-col-title">Legal</div>
+      <ul class="footer-links">
+        <li><a>Privacy Policy</a></li>
+        <li><a>Terms of Service</a></li>
+        <li><a>Data Processing</a></li>
+        <li><a>GDPR Compliance</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Tesseract Security Ltd. All rights reserved.</span>
+    <span>Argus Threat Intelligence Platform v1.0</span>
+  </div>
+</footer>
+
+<!-- ── JavaScript ─────────────────────────────────────────── -->
+<script>
+// Page navigation
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setupReveal();
+}
+
+// Scroll nav
+window.addEventListener('scroll', () => {
+  document.getElementById('main-nav').classList.toggle('scrolled', window.scrollY > 40);
+});
+
+// Reveal on scroll
+function setupReveal() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => {
+    el.classList.remove('visible');
+    observer.observe(el);
+  });
+}
+setupReveal();
+
+// Hamburger
+function toggleMenu() {
+  const links = document.querySelector('.nav-links');
+  links.style.display = links.style.display === 'flex' ? 'none' : 'flex';
+  links.style.flexDirection = 'column';
+  links.style.position = 'absolute';
+  links.style.top = '72px';
+  links.style.left = '0'; links.style.right = '0';
+  links.style.background = 'rgba(4,4,15,0.98)';
+  links.style.padding = '20px';
+  links.style.borderBottom = '1px solid var(--border)';
+}
+
+// Form submit
+function handleFormSubmit() {
+  const btn = document.querySelector('.form-submit');
+  btn.textContent = '✓ Request received — we will be in touch shortly';
+  btn.style.background = 'var(--green)';
+  btn.style.cursor = 'default';
+}
+
+// Re-run reveal when switching pages
+document.querySelectorAll('.nav-links a, .btn-primary, .btn-secondary, .pricing-cta').forEach(el => {
+  el.addEventListener('click', () => setTimeout(setupReveal, 100));
+});
+</script>
+</body>
+</html>
